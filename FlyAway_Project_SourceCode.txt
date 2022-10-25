@@ -1,0 +1,1040 @@
+FLYAWAY AIRLINE BOOKING PORTAL SOURCE CODE by Rohan Karande
+(NOTE:File name followed by source code is the format followed)
+ ________________________
+|File Name:-Customer.java|-----------------------------------------------------------------------------------------------------------------------------------------
+|________________________|
+
+package Database;
+
+public class Customer {
+	private String name;
+	private long phone;
+	private int flightno;
+	private long cardno;
+	private String cardname;
+	public String getName() {
+		return name;
+	}
+	
+	public void setName(String name) {
+		this.name = name;
+	}
+	public long getPhone() {
+		return phone;
+	}
+	public void setPhone(long phone) {
+		this.phone = phone;
+	}
+	public int getFlightno() {
+		return flightno;
+	}
+	public void setFlightno(int flightno) {
+		this.flightno = flightno;
+	}
+	public long getCardno() {
+		return cardno;
+	}
+	public void setCardno(long cardno) {
+		this.cardno = cardno;
+	}
+	public String getCardname() {
+		return cardname;
+	}
+	public void setCardname(String cardname) {
+		this.cardname = cardname;
+	}
+	@Override
+	public String toString() {
+		return "Customer [name=" + name + ", phone=" + phone + ", flightno=" + flightno + ", cardno=" + cardno
+				+ ", cardname=" + cardname + "]";
+	}	
+}
+-----------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+ _______________________
+|File Name:-Flights.java|
+|_______________________|
+
+package Database;
+
+public class Flights {
+	private int flightNumber;
+	private String source;
+	private String destination;
+	private String time;
+	private int duration;
+	private int price;
+	public int getFlightNumber() {
+		return flightNumber;
+	}
+	public void setFlightNumber(int flightNumber) {
+		this.flightNumber = flightNumber;
+	}
+	public String getSource() {
+		return source;
+	}
+	public void setSource(String source) {
+		this.source = source;
+	}
+	public String getDestination() {
+		return destination;
+	}
+	public void setDestination(String destination) {
+		this.destination = destination;
+	}
+	public String getTime() {
+		return time;
+	}
+	public void setTime(String time) {
+		this.time = time;
+	}
+	public int getDuration() {
+		return duration;
+	}
+	public void setDuration(int duration) {
+		this.duration = duration;
+	}
+	public int getPrice() {
+		return price;
+	}
+	public void setPrice(int price) {
+		this.price = price;
+	}
+	public Flights(int flightNumber, String source, String destination, String time, int duration, int price) {
+		this.flightNumber = flightNumber;
+		this.source = source;
+		this.destination = destination;
+		this.time = time;
+		this.duration = duration;
+		this.price = price;
+	}
+}
+------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+ _________________________
+|File Name:-FlightsDB.java|
+|_________________________|
+
+package Database;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
+
+public class FlightsDB {
+	public static List<Flights> getFlightsList() throws ClassNotFoundException, SQLException{
+		String url="jdbc:mysql://localhost:3306/flyaway";
+		String userName="root";
+		String password="RohanCS10$";
+		ArrayList<Flights> flights=new ArrayList<>();
+		Class.forName("com.mysql.cj.jdbc.Driver");
+		Connection con=DriverManager.getConnection(url,userName,password);
+		Statement stmt=con.createStatement();
+		ResultSet rs=stmt.executeQuery("select * from flights");
+		while(rs.next()) {
+			int flightnumber=rs.getInt(1);
+			String source=rs.getString(2);
+			String destination=rs.getString(3);
+			String time=rs.getString(4);
+			int duration=rs.getInt(5);
+			int price=rs.getInt(6);
+			Flights f=new Flights(flightnumber,source,destination,time,duration,price);
+			flights.add(f);
+		}
+		return flights;
+	}
+	
+	
+}
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+ __________________________
+|File Name:-Validation.java|
+|__________________________|
+
+package Filter;
+
+import java.io.IOException;
+import java.io.PrintWriter;
+
+import javax.servlet.Filter;
+import javax.servlet.FilterChain;
+import javax.servlet.FilterConfig;
+import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
+import javax.servlet.annotation.WebFilter;
+import javax.servlet.http.HttpFilter;
+
+import Database.Customer;
+
+
+@WebFilter("/Validation")
+public class Validation extends HttpFilter implements Filter {
+       
+   
+    public Validation() {
+        super();
+        
+    }
+
+	
+	public void destroy() {
+		
+	}
+
+	
+	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
+		String cardno=request.getParameter("cardno");
+		if(cardno==null||!cardno.matches("[0-9]{12}")||!request.getParameter("cvv").matches("[0-9]{3}")){
+			PrintWriter pw=response.getWriter();
+			request.getRequestDispatcher("payment.html").include(request, response);
+			pw.println("<center><SPAN style='color:red'>Invalid Credentials</SPAN></center>");
+		}
+		else {
+			Customer c=new Customer();
+			c.setCardname(request.getParameter("name1"));
+			c.setCardno(Long.parseLong(request.getParameter("cardno")));
+			request.setAttribute("customer", c);
+			chain.doFilter(request, response);
+		}
+	}
+
+	
+	public void init(FilterConfig fConfig) throws ServletException {
+		
+	}
+
+}
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+ _________________________
+|File Name:-AddFlight.java|
+|_________________________|
+
+package Servlet;
+
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+
+@WebServlet("/AddFlight")
+public class AddFlight extends HttpServlet {
+	private static final long serialVersionUID = 1L;
+       
+   
+    public AddFlight() {
+        super();
+        
+    }
+	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		PrintWriter pw=response.getWriter();
+		try{
+		Class.forName("com.mysql.cj.jdbc.Driver");
+		String user="root";
+		String password="RohanCS10$";
+		String url="jdbc:mysql://localhost:3306/flyaway";
+		Connection con=DriverManager.getConnection(url,user,password);
+		if(!request.getParameter("source").equals(request.getParameter("destination"))) {
+		PreparedStatement ps=con.prepareStatement("insert into flights(flightNumber,source,destination,time,duration,price) values(?,?,?,?,?,?)");
+		ps.setString(1, request.getParameter("flightNumber"));
+		ps.setString(2, request.getParameter("source"));
+		ps.setString(3, request.getParameter("destination"));
+		ps.setString(4, request.getParameter("time"));
+		ps.setInt(5, Integer.parseInt(request.getParameter("duration")));
+		ps.setInt(6, Integer.parseInt(request.getParameter("price")));
+		ps.executeUpdate();
+		ps.close();
+		request.getRequestDispatcher("add.html").include(request, response);
+		pw.println("<center><SPAN style='color:green'>Flight Added Successfully</SPAN></center>");
+		}
+		else {
+			request.getRequestDispatcher("add.html").include(request, response);
+			pw.println("<center><SPAN style='color:red'>Source And Destination cannot be same</SPAN></center>");
+		}
+		}
+		catch (Exception e) {
+			
+			pw.print(e);
+		}
+	}
+
+}
+---------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+ ____________________
+|File Name:-Adminjava|
+|____________________|
+
+
+package Servlet;
+
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+
+@WebServlet("/Admin")
+public class Admin extends HttpServlet
+{
+	private static final long serialVersionUID = 1L;
+       
+ 
+    public Admin()
+    {
+        super();
+        
+    }
+
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException 
+    {
+	PrintWriter pw=response.getWriter();
+	try
+	{
+	Class.forName("com.mysql.cj.jdbc.Driver");
+	String user="root";
+	String password="RohanCS10$";
+	String url="jdbc:mysql://localhost:3306/flyaway";
+	Connection con=DriverManager.getConnection(url,user,password);
+	PreparedStatement ps=con.prepareStatement("select * from admin");
+	ResultSet rs=ps.executeQuery();
+	if(rs.next()) 
+	    {
+		if(request.getParameter("username").equals(rs.getString(1))&&request.getParameter("password").equals(rs.getString(2))) 
+		  {
+			request.getRequestDispatcher("1.html").include(request, response);
+		  }
+		else 
+		  {
+			request.getRequestDispatcher("AdminLogin.html").include(request, response);
+			pw.println("<h3 align='center'><SPAN style='color:red'>Invalid Credentials</SPAN></h3>");
+		  }
+	    }
+	 } 
+	catch (Exception e) 
+	{
+		pw.print(e);
+	}
+}		
+}
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+ ____________________
+|File Name:-Book.java|
+|____________________|
+
+package Servlet;
+
+import java.io.IOException;
+import java.util.List;
+
+import javax.servlet.RequestDispatcher;
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import Database.Flights;
+import Database.FlightsDB;
+
+
+@WebServlet("/Book")
+public class Book extends HttpServlet {
+	private static final long serialVersionUID = 1L;
+       
+    
+    public Book() {
+        super();
+        
+    }
+
+	
+	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		try {
+			List<Flights> flightlist=FlightsDB.getFlightsList();
+			request.setAttribute("flightlist", flightlist);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		RequestDispatcher dispatcher=request.getRequestDispatcher("booking.jsp");
+		dispatcher.forward(request, response);
+	}
+}
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+ ______________________
+|File Name:-Change.java|
+|______________________|
+
+package Servlet;
+
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+
+@WebServlet("/Change")
+public class Change extends HttpServlet {
+	private static final long serialVersionUID = 1L;
+       
+   
+    public Change() {
+        super();
+        
+    }
+
+	
+	
+	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		PrintWriter pw=response.getWriter();
+		try{
+		Class.forName("com.mysql.cj.jdbc.Driver");
+		String user="root";
+		String password="RohanCS10$";
+		String url="jdbc:mysql://localhost:3306/flyaway";
+		Connection con=DriverManager.getConnection(url,user,password);
+		PreparedStatement ps=con.prepareStatement("select * from admin");
+		ResultSet rs=ps.executeQuery();
+		if(rs.next()) {
+			if(request.getParameter("newpassword").equals(request.getParameter("conpassword"))&&request.getParameter("oldpassword").equals(rs.getString(2))&&!request.getParameter("newpassword").equals(rs.getString(2))) {
+				PreparedStatement ps1=con.prepareStatement("update admin set AdminPassword=? where AdminName=?");
+				ps1.setString(1, request.getParameter("newpassword"));
+				ps1.setString(2, "Rohan");
+				ps1.executeUpdate();
+				ps1.close();
+				request.getRequestDispatcher("cp.html").include(request, response);
+				pw.println("<center><SPAN style='color:green'>Password Changed Successfully</SPAN></center>");
+			}
+			else {
+				request.getRequestDispatcher("cp.html").include(request, response);
+				pw.println("<center><SPAN style='color:red'>Invalid Credentials</SPAN></center>");
+			}
+		}
+		
+	}
+		catch (Exception e) {
+			
+			pw.print(e);
+		}
+	
+	}
+}
+------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+ ______________________
+|File Name:-Delete.java|
+|______________________|
+
+package Servlet;
+
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+
+import javax.servlet.RequestDispatcher;
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+
+@WebServlet("/Delete")
+public class Delete extends HttpServlet {
+	private static final long serialVersionUID = 1L;
+       
+    
+    public Delete() {
+        super();
+        
+    }
+
+
+	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		PrintWriter pw=response.getWriter();
+		try{
+		Class.forName("com.mysql.cj.jdbc.Driver");
+		String user="root";
+		String password="RohanCS10$";
+		String url="jdbc:mysql://localhost:3306/flyaway";
+		Connection con=DriverManager.getConnection(url,user,password);
+		
+		PreparedStatement ps=con.prepareStatement("delete from flights where flightnumber=?");
+		ps.setString(1, request.getParameter("flightnos"));
+		ps.executeUpdate();
+		ps.close();
+		request.getRequestDispatcher("1.html").include(request, response);
+		
+		pw.println("<center><SPAN style='color:green'>Flight Deleted Successfully or entered Flight Number doesn't exist</SPAN></center>");
+		
+		}
+		catch (Exception e) {
+			
+			pw.print(e);
+		}
+	}
+
+}
+------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+ ___________________________
+|File Name:-FlightsServ.java|
+|___________________________|
+
+
+package Servlet;
+
+import java.io.IOException;
+import java.util.List;
+
+import javax.servlet.RequestDispatcher;
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import Database.Flights;
+import Database.FlightsDB;
+
+
+@WebServlet("/FlightsServ")
+public class FlightsServ extends HttpServlet {
+	private static final long serialVersionUID = 1L;
+       
+ 
+    public FlightsServ() {
+        super();
+        
+    }
+
+
+	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		try {
+			List<Flights> flightlist=FlightsDB.getFlightsList();
+			request.setAttribute("flightlist", flightlist);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		RequestDispatcher dispatcher=request.getRequestDispatcher("show-flights.jsp");
+		dispatcher.forward(request, response);
+
+	}
+
+
+}
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+ _______________________
+|File Name:-Payment.java|
+|_______________________|
+
+
+package Servlet;
+
+import java.io.IOException;
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+
+import Database.Customer;
+
+
+@WebServlet("/Payment")
+public class Payment extends HttpServlet {
+	private static final long serialVersionUID = 1L;
+       
+ 
+    public Payment() {
+        super();
+        
+    }
+	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		Customer c=new Customer();
+		HttpSession session=request.getSession();
+		c.setFlightno(Integer.parseInt(request.getParameter("flight")));
+		c.setName(request.getParameter("name"));
+		c.setPhone(Long.parseLong(request.getParameter("phone")));
+		session.setAttribute("customer", c);
+		response.sendRedirect("payment.html");
+	}
+
+}
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+ __________________________
+|File Name:-PaySuccess.java|
+|__________________________|
+
+
+package Servlet;
+
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+
+import Database.Customer;
+import Database.Flights;
+
+/**
+ * Servlet implementation class PaySuccess
+ */
+@WebServlet("/PaySuccess")
+public class PaySuccess extends HttpServlet {
+	private static final long serialVersionUID = 1L;
+       
+    
+    public PaySuccess() {
+        super();
+       
+    }
+
+	
+	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		Flights f;
+		PrintWriter pw=response.getWriter();
+		HttpSession session =request.getSession(false);
+		Customer u=(Customer) session.getAttribute("customer");
+		Customer u2=(Customer) request.getAttribute("customer");
+		u.setCardname(u2.getCardname());
+		u.setCardno(u2.getCardno());
+		
+		try{
+			Class.forName("com.mysql.cj.jdbc.Driver");
+			String user="root";
+			String password="RohanCS10$";
+			String url="jdbc:mysql://localhost:3306/flyaway";
+			Connection con=DriverManager.getConnection(url,user,password);
+			PreparedStatement ps=con.prepareStatement("select * from flights where flightnumber=?");
+			ps.setInt(1, u.getFlightno());
+			ResultSet rs=ps.executeQuery();
+			if(rs.next()) {
+				f=new Flights(rs.getInt(1),rs.getString(2),rs.getString(3),rs.getString(4),rs.getInt(5),rs.getInt(6));
+				pw.print("<button><a href='index.html'>Home</a></button>");
+				pw.print("<h1 align='center'>Congratualtions you have Successfully booked your Ticket</h1><br>");
+				pw.print("<h2 align='center'>Details are as below</h2><br>");
+				pw.print("<center> Name:"+u.getName()+"</center>");
+				pw.print("<center> Flight Number:"+u.getFlightno()+"</center>");
+				pw.print("<center> Source:"+f.getSource()+"</center>");
+				pw.print("<center> Destination:"+f.getDestination()+"</center>");
+				pw.print("<center> Time:"+f.getTime()+"</center>");
+				pw.print("<center>Payment Details are as Follows:</center>");
+				pw.print("<center> Price:"+f.getPrice()+"</center>");
+				pw.print("<center> CardNumber:"+u.getCardno()+"</center>");
+				pw.print("<center> Name of CardHolder:"+u.getCardname()+"</center><br>");
+				pw.print("<center>Payment Status:<span style='color:green'>Successful</span></center>");
+			}
+			
+		}
+			catch (Exception e) {
+				
+				pw.print(e);
+			}
+	}
+
+}
+------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+ _____________________
+|File Name:-index.html|
+|_____________________|
+
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="ISO-8859-1">
+<title>Insert title here</title>
+</head>
+<link rel="stylesheet" href="css/style.css">
+<style >
+body{
+   background:lightblue;
+   background-image:url("https://wallpapercave.com/wp/wp4128800.jpg") ;
+   background-repeat:no-repeat;
+   background-size:cover;
+   
+}
+h1{
+   background:white;
+}
+h2
+{
+   font-size:30px;
+   font-style:ITALIC;
+}
+
+</style>
+
+<body>
+<h1><center><i>Welcome to FlyAway</i></center></h1><br>
+<pre>                                                                                                                                                                   <button ><a href="AdminLogin.html"><img src='https://www.freeiconspng.com/thumbs/login-button-png/admin-login-button-png-16.png' width="80px"></a></button></pre>
+<h2 ><pre>   FLY IN COMFORT,</pre></h2> 
+<h2 ><pre>         FLY WITH CLASS,</pre></h2>
+<h2 ><pre>               FLY HIGH,DREAM BIG.</pre></h2>
+
+<pre>                                         <button><a href="Book"><img src='https://www.kindpng.com/picc/m/21-212823_book-now-button-png-transparent-png.png' width="120px"></a></button></pre>
+
+</body>
+
+</html>
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+ __________________________
+|File Name:-1.html         |
+|__________________________|
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="ISO-8859-1">
+<title>Welcome Admin</title>
+</head>
+<body>
+<body>
+<h3 align="right"><button><a href="cp.html">Change Password</a></button><button><a href="AdminLogin.html">Log Out</a></button></h3>
+<center><h1>Welcome Rohan</h1></center>
+<center><h1>LogIn Successful</h1></center>
+<h2>What are you planning to do Today?</h2>
+<br>
+<h3>If you want to see list of flights available then click on SHOW FLIGHTS option</h3>
+<h3>
+<button><a href="add.html">Add Flight</a></button>
+<button><a href="FlightsServ">SHOW FLIGHTS</a></button>
+</h3>
+</body>
+</html>
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+ __________________________
+|File Name:-add.html       |
+|__________________________|
+
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="ISO-8859-1">
+<title>Add Flight</title>
+</head>
+<body>
+<h3 align="right"><a href="1.html">Back</a></h3>
+<br><br><br><br>
+<h1 align="center">Add Flight</h1>
+<h3 align="center">Note:Please enter details properly as the same will be visible to the Customers</h3>
+<h3>
+<form align="center" action="AddFlight" method="post">
+FlightNumber:<input type="text" name="flightNumber"><br><br>
+Source:<input type="text" name="source"><br><br>
+Destination:<input type="text" name="destination"><br><br>
+Price:<input type="number" name="price"><br><br>
+Time:<input type="text" name="time"><br><br>
+Duration(in hrs):<input type="number" name="duration"><br><br>
+<input type="submit" name="add" value="Add">
+</form>
+</h3>
+</body>
+</html>
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+ __________________________
+|File Name:-AdminLogin.html|
+|__________________________|
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="ISO-8859-1">
+<title>Insert title here</title>
+</head>
+<body>
+<h2 align="center">For Admin Use Only</h2>
+<h2 align="center">Log In&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</h2>
+<h3 align="center">
+<form action="Admin" method="post">
+Username:<input type="text" name="username"><br><br>
+Password:<input type="password" name="password"><br><br>
+<input type=submit value=LogIn name="login">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</form> 
+</h3>
+</body>
+</html>
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+ __________________________
+|File Name:-booking.jsp    |
+|__________________________|
+
+<%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
+<%@ page language="java" contentType="text/html; charset=ISO-8859-1"
+    pageEncoding="ISO-8859-1"%>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="ISO-8859-1">
+<title>Flights List</title>
+<link rel="stylesheet" href="css/style.css">
+<style >
+body{
+   background-image:url("https://img.lovepik.com/photo/50099/3731.jpg_wh300.jpg") ;
+   background-repeat:no-repeat;
+   background-size:contain;
+   
+}
+form
+{
+  
+  font-style:italic;
+}
+
+</style>
+</head>
+<body>
+<h3 align="right"><a href="index.html">Back</a></h3>
+<h1 align="center">Available Flights</h1>
+<table border="1" cellpadding="20%" align="center" bgcolor="lightgreen">
+<tr>
+<th>FlightNumber</th>
+<th>Source</th>
+<th>Destination</th>
+<th>Time</th>
+<th>Duration</th>
+<th>Price</th>
+</tr>
+	<c:forEach var="items" items="${flightlist}">
+	<tr>
+	<td>${items.flightNumber}</td>
+	<td>${items.source}</td>
+	<td>${items.destination}</td>
+	<td>${items.time}</td>
+	<td>${items.duration}</td>
+	<td>${items.price}</td>
+	</tr>
+	</c:forEach>
+	
+</table>
+<form action="Payment" method="post" align="center">
+<b>Name</b>:<input type="text" name="name"><br><br>
+<b>Phone</b>:<input type="number" name="phone"><br><br>
+<b>Flight Number</b>:<input type="number" name="flight"><br><br>
+<h3>Please Provide Correct Flight Number to avoid further Discrepancies</h3>
+<input type="submit" value="Proceed to Payment">
+</form>
+</body>
+</html>
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+ __________________________
+|File Name:-cp.html        |
+|__________________________|
+
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="ISO-8859-1">
+<title>Change Password</title>
+</head>
+<body>
+<br><br><br><br><br><br>
+
+<center>
+<h1>Change Password</h1><br>
+<h4>1)Old Password should be correct<br>2)New Password and Old Password
+should not be same<br>3)Confirm Password should match New Password<br>
+Note:If any of the above confition fails then it will be considered as Invalid Credentials</h4>
+<h2>
+<form action="Change" method="post">
+Enter Old Password:<input type="password" name="oldpassword"><br><br>
+Enter New Password:<input type="password" name="newpassword"><br><br>
+Confirm New Password:<input type="password" name="conpassword"><br><br>
+<input type="submit" name="cpass" value="Change Password"><br>
+</form>
+<button><a href="1.html">Cancel</a></button>
+</h2></center>
+</body>
+</html>
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+ __________________________
+|File Name:-payment.html   |
+|__________________________|
+
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="ISO-8859-1">
+<title>Payment</title>
+<link rel="stylesheet" href="css/style.css">
+<style >
+body{
+   background-image:url("") ;
+   background-repeat:no-repeat;
+   background-size:cover;
+   
+}
+</style>
+</head>
+<body>
+<h3 align="right"><a href="booking.html">Back</a></h3>
+<br><br><br><br><br>
+<h1 align="center">Payment Gateway</h1><br>
+<form align="center" action="PaySuccess" method="post">
+Card Number(12 Digits):<input type="number" name="cardno"><br>
+Expiry Month:<input type="number" name="month"><br>
+Expiry Year:<input type="number" name="year"><br>
+CVV(3 Digits):<input type="number" name="cvv"><br>
+Card Holder Name:<input type="text" name="name1"><br>
+<input type="submit" value="Pay">
+</form>
+</body>
+</html>
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+ ___________________________
+|File Name:-show-flights.jsp|
+|___________________________|
+
+
+<%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
+<%@ page language="java" contentType="text/html; charset=ISO-8859-1"
+    pageEncoding="ISO-8859-1"%>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="ISO-8859-1">
+<title>Flights List</title>
+</head>
+<body>
+<h3 align="right"><a href="1.html">Back</a></h3>
+<h1 align="center">Available Flights</h1>
+<table border="1" cellpadding="30%" align="center" bgcolor="skyblue">
+<tr>
+<th>FlightNumber</th>
+<th>Source</th>
+<th>Destination</th>
+<th>Time</th>
+<th>Duration</th>
+<th>Price</th>
+</tr>
+    
+	<c:forEach var="items" items="${flightlist}">
+	<tr>
+	<td>${items.flightNumber}</td>
+	<td>${items.source}</td>
+	<td>${items.destination}</td>
+	<td>${items.time}</td>
+	<td>${items.duration}</td>
+	<td>${items.price}</td>
+	</tr>
+	</c:forEach>
+	
+</table>
+<br><br>
+<h2 align="center">Please enter the flight you want to delete</h2>
+<h2><form action="Delete" method="post" align="center">
+Flight Number:<input type="number" name="flightnos"><br><br>
+<input type="submit" value="Delete" name="delete">
+</form></h2>
+</body>
+</html>
+
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+ ___________________________
+|File Name:-web.xml         |
+|___________________________|
+
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://xmlns.jcp.org/xml/ns/javaee" xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_4_0.xsd" id="WebApp_ID" version="4.0">
+  <display-name>FlyAway</display-name>
+  <welcome-file-list>
+    <welcome-file>index.html</welcome-file>
+    <welcome-file>index.jsp</welcome-file>
+    <welcome-file>index.htm</welcome-file>
+    <welcome-file>default.html</welcome-file>
+    <welcome-file>default.jsp</welcome-file>
+    <welcome-file>default.htm</welcome-file>
+  </welcome-file-list>
+   <filter>
+ <filter-name>Validation</filter-name>
+ <filter-class>Filter.Validation</filter-class>
+ </filter>
+ <filter-mapping>
+ <filter-name>Validation</filter-name>
+ <url-pattern>/PaySuccess</url-pattern>
+ </filter-mapping>
+</web-app>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
